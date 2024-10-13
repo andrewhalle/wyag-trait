@@ -1,0 +1,8 @@
+[package]
+name = "application"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+application-macro = { path = "../application-macro" }
+clap = { version = "4", features = ["derive"] }
