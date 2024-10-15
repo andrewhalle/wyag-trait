@@ -1,3 +1,6 @@
+// TODO: remove
+#![allow(dead_code)]
+
 use application::{clap, Application};
 
 struct Git;
@@ -18,6 +21,7 @@ mod init;
 mod log;
 mod ls_files;
 mod ls_tree;
+mod repo;
 mod rev_parse;
 mod rm;
 mod show_ref;
