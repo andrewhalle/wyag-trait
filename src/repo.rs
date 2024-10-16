@@ -1,5 +1,7 @@
 use std::{
     convert::Infallible,
+    fs::{DirBuilder, OpenOptions},
+    io,
     path::{Path, PathBuf},
 };
 
@@ -10,13 +12,6 @@ pub(crate) trait Repository: Sized {
     type Error: std::error::Error;
 
     fn new(path: &Path) -> Result<Self, Self::Error>;
-
-    fn repo_path<P>(repo: &Path, path: P) -> PathBuf
-    where
-        P: AsRef<Path>,
-    {
-        repo.join(path)
-    }
 }
 
 /// Loading/manipulating a config object.
@@ -30,6 +25,38 @@ trait Config: Sized {
     fn getuint(&self, section: &str, field: &str) -> Result<u64, Self::Error>;
 }
 
+trait RepoPathHelper {
+    fn ensure_dir_exists<P>(path: P) -> Result<PathBuf, io::Error>
+    where
+        P: AsRef<Path>;
+
+    fn ensure_file_exists<P>(path: P) -> Result<PathBuf, io::Error>
+    where
+        P: AsRef<Path>;
+}
+
+struct PathHelper;
+impl RepoPathHelper for PathHelper {
+    fn ensure_dir_exists<P>(path: P) -> Result<PathBuf, io::Error>
+    where
+        P: AsRef<Path>,
+    {
+        DirBuilder::new().recursive(true).create(path.as_ref())?;
+        Ok(path.as_ref().to_owned())
+    }
+
+    fn ensure_file_exists<P>(path: P) -> Result<PathBuf, io::Error>
+    where
+        P: AsRef<Path>,
+    {
+        OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path.as_ref())?;
+        Ok(path.as_ref().to_owned())
+    }
+}
+
 #[derive(Debug, thiserror::Error, PartialEq)]
 enum Error {
     #[error("Not a Git repository: {0}")]
@@ -40,6 +67,8 @@ enum Error {
     UnsupportedVersion(Option<u64>),
     #[error("Invalid config: {0}")]
     InvalidConfig(String),
+    #[error("Error occurred during I/O: {0}")]
+    Io(String),
 }
 
 /// A repository for which we have validated that `worktree` and `gitdir` exist.
@@ -66,10 +95,9 @@ impl Config for Ini {
     }
 
     fn getuint(&self, section: &str, field: &str) -> Result<u64, Self::Error> {
-        Ok(self
-            .getuint(section, field)
+        self.getuint(section, field)
             .map_err(Error::InvalidConfig)?
-            .ok_or(Error::UnsupportedVersion(None))?)
+            .ok_or(Error::UnsupportedVersion(None))
     }
 }
 
@@ -145,7 +173,7 @@ mod tests {
 
     #[test]
     fn nonzero_version() {
-        let repo: Result<Repo<FakeConfig>, _> = Repo::new(&std::env::current_dir().unwrap());
+        let repo: Result<Repo<FakeConfig>, _> = Repo::new(&std::env::temp_dir());
         assert_eq!(repo, Err(Error::UnsupportedVersion(Some(1))));
     }
 }
