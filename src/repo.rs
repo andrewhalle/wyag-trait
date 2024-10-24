@@ -60,7 +60,7 @@ impl RepoPathHelper for PathHelper {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq)]
-enum Error {
+pub(crate) enum Error {
     #[error("Not a Git repository: {0}")]
     NotGitRepository(PathBuf),
     #[error("Configuration file is missing")]
@@ -73,13 +73,13 @@ enum Error {
     Io(String),
     #[error("{0} is not a directory")]
     NotADirectory(PathBuf),
-    #[error("{0} is no empty")]
+    #[error("{0} is not empty")]
     NotEmpty(PathBuf),
 }
 
 /// A repository for which we have validated that `worktree` and `gitdir` exist.
 #[derive(Debug, PartialEq)]
-struct Repo<T> {
+pub(crate) struct Repo<T> {
     inner: UnvalidatedRepo,
     config: T,
 }
@@ -163,7 +163,7 @@ where
     }
 }
 
-trait RepoCreator {
+pub(crate) trait RepoCreator {
     type Repo: Repository;
     type Error: std::error::Error;
 
@@ -172,7 +172,7 @@ trait RepoCreator {
         P: AsRef<Path>;
 }
 
-struct RealRepoCreator;
+pub(crate) struct RealRepoCreator;
 impl RepoCreator for RealRepoCreator {
     type Repo = Repo<Ini>;
     type Error = Error;

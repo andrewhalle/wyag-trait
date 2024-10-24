@@ -1,12 +1,14 @@
 // TODO: remove
 #![allow(dead_code)]
 
+use std::error::Error;
+
 use application::{clap, Application};
 
 struct Git;
 #[derive(Debug, thiserror::Error)]
-#[error("git error")]
-struct GitError;
+#[error("{0}")]
+struct GitError(#[from] Box<dyn Error>);
 
 #[application::main]
 static APP: Git = Git;
